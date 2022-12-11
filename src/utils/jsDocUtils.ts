@@ -1,45 +1,59 @@
-import * as ts from 'typescript';
+import * as ts from 'typescript'
 
-export function getJSDocDescription(node: ts.Node) {
-    const jsDocs = (node as any).jsDoc as Array<ts.JSDoc>;
-    if (!jsDocs || !jsDocs.length) { return ''; }
+export function getJSDocDescription (node: ts.Node) {
+  const jsDocs = (node as any).jsDoc as ts.JSDoc[]
+  if (!jsDocs || (jsDocs.length === 0)) {
+    return ''
+  }
 
-    return jsDocs[0].comment as string || '';
+  return (jsDocs[0].comment as string) || ''
 }
 
-export function getJSDocTag(node: ts.Node, tagName: string) {
-    const tags = getJSDocTags(node, tagName);
-    if (!tags || !tags.length) {
-        return undefined;
-    }
-    return tags[0].comment as string;
+export function getJSDocTag (node: ts.Node, tagName: string) {
+  const tags = getJSDocTags(node, tagName)
+  if (!tags || (tags.length === 0)) {
+    return undefined
+  }
+  return tags[0].comment as string
 }
 
-export function isExistJSDocTag(node: ts.Node, tagName: string) {
-    const tags = getJSDocTags(node, tagName);
-    if (!tags || !tags.length) {
-        return false;
-    }
-    return true;
+export function isExistJSDocTag (node: ts.Node, tagName: string) {
+  const tags = getJSDocTags(node, tagName)
+  if (!tags || (tags.length === 0)) {
+    return false
+  }
+  return true
 }
 
-function getJSDocTags(node: ts.Node, tagName: string) {
-    return getMatchingJSDocTags(node, t => t.tagName.text === tagName);
+function getJSDocTags (node: ts.Node, tagName: string) {
+  return getMatchingJSDocTags(node, (t) => t.tagName.text === tagName)
 }
 
-export function getFirstMatchingJSDocTagName(node: ts.Node, isMatching: (t: ts.JSDocTag) => boolean) {
-    const tags = getMatchingJSDocTags(node, isMatching);
-    if (!tags || !tags.length) { return undefined; }
+export function getFirstMatchingJSDocTagName (
+  node: ts.Node,
+  isMatching: (t: ts.JSDocTag) => boolean
+) {
+  const tags = getMatchingJSDocTags(node, isMatching)
+  if (!tags || (tags.length === 0)) {
+    return undefined
+  }
 
-    return tags[0].tagName.text;
+  return tags[0].tagName.text
 }
 
-function getMatchingJSDocTags(node: ts.Node, isMatching: (t: ts.JSDocTag) => boolean) {
-    const jsDocs = (node as any).jsDoc as Array<ts.JSDoc>;
-    if (!jsDocs || !jsDocs.length) { return undefined; }
+function getMatchingJSDocTags (
+  node: ts.Node,
+  isMatching: (t: ts.JSDocTag) => boolean
+) {
+  const jsDocs = (node as any).jsDoc as ts.JSDoc[]
+  if (!jsDocs || (jsDocs.length === 0)) {
+    return undefined
+  }
 
-    const jsDoc = jsDocs[0];
-    if (!jsDoc.tags) { return undefined; }
+  const jsDoc = jsDocs[0]
+  if (!jsDoc.tags) {
+    return undefined
+  }
 
-    return jsDoc.tags.filter(isMatching);
+  return jsDoc.tags.filter(isMatching)
 }

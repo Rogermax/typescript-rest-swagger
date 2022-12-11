@@ -1,3 +1,4 @@
+[![js-standard-style](https://img.shields.io/badge/code%20style-standard-brightgreen.svg)](http://standardjs.com)
 [![npm version](https://badge.fury.io/js/typescript-rest-swagger.svg)](https://badge.fury.io/js/typescript-rest-swagger)
 ![Master Workflow](https://github.com/thiagobustamante/typescript-rest-swagger/workflows/Master%20Workflow/badge.svg)
 [![Coverage Status](https://coveralls.io/repos/github/thiagobustamante/typescript-rest-swagger/badge.svg?branch=master)](https://coveralls.io/github/thiagobustamante/typescript-rest-swagger?branch=master)

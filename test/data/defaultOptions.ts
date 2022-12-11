@@ -1,4 +1,4 @@
-import { SwaggerConfig } from './../../src/config';
+import { SwaggerConfig } from './../../src/config'
 export function getDefaultOptions(): SwaggerConfig {
   return {
     basePath: '/',
@@ -10,6 +10,6 @@ export function getDefaultOptions(): SwaggerConfig {
     name: 'Test API',
     outputDirectory: '',
     version: '1.0.0',
-    yaml: false
-  };
+    yaml: false,
+  }
 }
