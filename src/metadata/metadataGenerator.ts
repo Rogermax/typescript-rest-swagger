@@ -13,12 +13,12 @@ export class MetadataGenerator {
   private readonly program: ts.Program
   private referenceTypes: { [typeName: string]: ReferenceType } = {}
   private readonly circularDependencyResolvers = new Array<
-  (referenceTypes: { [typeName: string]: ReferenceType }) => void
+    (referenceTypes: { [typeName: string]: ReferenceType }) => void
   >()
 
   private readonly debugger = debug('typescript-rest-swagger:metadata')
 
-  constructor (
+  constructor(
     entryFile: string | string[],
     compilerOptions: ts.CompilerOptions,
     private readonly ignorePaths?: string[]
@@ -32,9 +32,9 @@ export class MetadataGenerator {
     MetadataGenerator.current = this
   }
 
-  public generate (): Metadata {
+  public generate(): Metadata {
     this.program.getSourceFiles().forEach((sf) => {
-      if (this.ignorePaths && (this.ignorePaths.length > 0)) {
+      if (this.ignorePaths && this.ignorePaths.length > 0) {
         for (const path of this.ignorePaths) {
           if (
             !sf.fileName.includes('node_modules/typescript-rest/') &&
@@ -62,25 +62,25 @@ export class MetadataGenerator {
     }
   }
 
-  public TypeChecker () {
+  public TypeChecker(): ts.TypeChecker {
     return this.typeChecker
   }
 
-  public addReferenceType (referenceType: ReferenceType) {
+  public addReferenceType(referenceType: ReferenceType): void {
     this.referenceTypes[referenceType.typeName] = referenceType
   }
 
-  public getReferenceType (typeName: string) {
+  public getReferenceType(typeName: string): ReferenceType {
     return this.referenceTypes[typeName]
   }
 
-  public onFinish (
+  public onFinish(
     callback: (referenceTypes: { [typeName: string]: ReferenceType }) => void
-  ) {
+  ): void {
     this.circularDependencyResolvers.push(callback)
   }
 
-  public getClassDeclaration (className: string) {
+  public getClassDeclaration(className: string): ts.Node | undefined {
     const found = this.nodes.filter((node) => {
       const classDeclaration = node as ts.ClassDeclaration
       return (
@@ -89,13 +89,13 @@ export class MetadataGenerator {
         classDeclaration.name.text === className
       )
     })
-    if (found && (found.length > 0)) {
+    if (found && found.length > 0) {
       return found[0]
     }
     return undefined
   }
 
-  public getInterfaceDeclaration (className: string) {
+  public getInterfaceDeclaration(className: string): ts.Node | undefined {
     const found = this.nodes.filter((node) => {
       const interfaceDeclaration = node as ts.InterfaceDeclaration
       return (
@@ -104,13 +104,13 @@ export class MetadataGenerator {
         interfaceDeclaration.name.text === className
       )
     })
-    if (found && (found.length > 0)) {
+    if (found && found.length > 0) {
       return found[0]
     }
     return undefined
   }
 
-  private getSourceFiles (sourceFiles: string | string[]) {
+  private getSourceFiles(sourceFiles: string | string[]): string[] {
     this.debugger('Getting source files from expressions')
     this.debugger('Source file patterns: %j ', sourceFiles)
     const sourceFilesExpressions = _.castArray(sourceFiles)
@@ -125,7 +125,7 @@ export class MetadataGenerator {
     return Array.from(result)
   }
 
-  private buildControllers () {
+  private buildControllers(): Controller[] {
     return this.nodes
       .filter((node) => node.kind === ts.SyntaxKind.ClassDeclaration)
       .filter(

@@ -11,20 +11,20 @@ export abstract class EndpointGenerator<T extends ts.Node> {
   protected node: T
   protected debugger: debug.Debugger
 
-  constructor (node: T, name: string) {
+  constructor(node: T, name: string) {
     this.node = node
     this.debugger = debug(`typescript-rest-swagger:metadata:${name}`)
   }
 
-  protected getDecoratorValues (
+  protected getDecoratorValues(
     decoratorName: string,
     acceptMultiple: boolean = false
-  ) {
+  ): any[] {
     const decorators = getDecorators(
       this.node,
       (decorator) => decorator.text === decoratorName
     )
-    if (!decorators || (decorators.length === 0)) {
+    if (!decorators || decorators.length === 0) {
       return []
     }
     if (!acceptMultiple && decorators.length > 1) {
@@ -43,37 +43,36 @@ export abstract class EndpointGenerator<T extends ts.Node> {
     return result
   }
 
-  protected getSecurity () {
+  protected getSecurity():
+    | Array<{
+        name: any
+        scopes: string[]
+      }>
+    | undefined {
     const securities = this.getDecoratorValues('Security', true)
-    if (!securities || (securities.length === 0)) {
+    if (!securities || securities.length === 0) {
       return undefined
     }
 
     return securities.map((security) => ({
       name: security[1] ? security[1] : 'default',
-      scopes: security[0]
-        ? _.castArray(this.handleRolesArray(security[0]))
-        : []
+      scopes: security[0] ? _.castArray(this.handleRolesArray(security[0])) : []
     }))
   }
 
-  protected handleRolesArray (
-    argument: ts.ArrayLiteralExpression
-  ): string[] {
+  protected handleRolesArray(argument: ts.ArrayLiteralExpression): string[] {
     if (ts.isArrayLiteralExpression(argument)) {
       return argument.elements
         .map((value) => value.getText())
         .map((val) =>
-          val && val.startsWith("'") && val.endsWith("'")
-            ? val.slice(1, -1)
-            : val
+          val?.startsWith("'") && val?.endsWith("'") ? val.slice(1, -1) : val
         )
     } else {
       return argument
     }
   }
 
-  protected getExamplesValue (argument: any) {
+  protected getExamplesValue(argument: any): any {
     let example: any = {}
     this.debugger(argument)
     if (argument.properties) {
@@ -91,7 +90,7 @@ export abstract class EndpointGenerator<T extends ts.Node> {
     return example
   }
 
-  protected getInitializerValue (initializer: any) {
+  protected getInitializerValue(initializer: any): any {
     switch (initializer.kind as ts.SyntaxKind) {
       case ts.SyntaxKind.ArrayLiteralExpression:
         return initializer.elements.map((e: any) => this.getInitializerValue(e))
@@ -105,6 +104,7 @@ export abstract class EndpointGenerator<T extends ts.Node> {
       case ts.SyntaxKind.FirstLiteralToken:
         return parseInt(initializer.text, 10)
       case ts.SyntaxKind.ObjectLiteralExpression:
+        // eslint-disable-next-line no-case-declarations
         const nestedObject: any = {}
 
         initializer.properties.forEach((p: any) => {
@@ -117,14 +117,14 @@ export abstract class EndpointGenerator<T extends ts.Node> {
     }
   }
 
-  protected getResponses (
+  protected getResponses(
     genericTypeMap?: Map<String, ts.TypeNode>
   ): ResponseType[] {
     const decorators = getDecorators(
       this.node,
       (decorator) => decorator.text === 'Response'
     )
-    if (!decorators || (decorators.length === 0)) {
+    if (!decorators || decorators.length === 0) {
       return []
     }
     this.debugger('Generating Responses for %s', this.getCurrentLocation())
@@ -162,5 +162,5 @@ export abstract class EndpointGenerator<T extends ts.Node> {
     })
   }
 
-  protected abstract getCurrentLocation (): string
+  protected abstract getCurrentLocation(): string
 }

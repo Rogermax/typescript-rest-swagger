@@ -4,7 +4,13 @@ import {
   getDecoratorOptions,
   getDecoratorTextValue
 } from '../utils/decoratorUtils'
-import { MetadataGenerator, Parameter, Type } from './metadataGenerator'
+import {
+  ArrayType,
+  MetadataGenerator,
+  ObjectType,
+  Parameter,
+  Type
+} from './metadataGenerator'
 import {
   getCommonPrimitiveAndArrayUnionType,
   getLiteralValue,
@@ -12,58 +18,64 @@ import {
 } from './resolveType'
 
 export class ParameterGenerator {
-  constructor (
+  constructor(
     private readonly parameter: ts.ParameterDeclaration,
     private readonly method: string,
     private readonly path: string,
     private readonly genericTypeMap?: Map<String, ts.TypeNode>
   ) {}
 
-  public generate (): Parameter {
-    const decoratorName = getDecoratorName(this.parameter, (identifier) =>
-      this.supportParameterDecorator(identifier.text)
-    )
+  public generate(): Parameter {
+    try {
+      const decoratorName = getDecoratorName(this.parameter, (identifier) => {
+        return this.supportParameterDecorator(identifier.text)
+      })
 
-    switch (decoratorName) {
-      case 'Param':
-        return this.getRequestParameter(this.parameter)
-      case 'CookieParam':
-        return this.getCookieParameter(this.parameter)
-      case 'FormParam':
-        return this.getFormParameter(this.parameter)
-      case 'HeaderParam':
-        return this.getHeaderParameter(this.parameter)
-      case 'QueryParam':
-        return this.getQueryParameter(this.parameter)
-      case 'PathParam':
-        return this.getPathParameter(this.parameter)
-      case 'FileParam':
-        return this.getFileParameter(this.parameter)
-      case 'FilesParam':
-        return this.getFilesParameter(this.parameter)
-      case 'Context':
-      case 'ContextRequest':
-      case 'ContextResponse':
-      case 'ContextNext':
-      case 'ContextLanguage':
-      case 'ContextAccept':
-        return this.getContextParameter(this.parameter)
-      default:
-        return this.getBodyParameter(this.parameter)
+      switch (decoratorName) {
+        case 'Param':
+          return this.getRequestParameter(this.parameter)
+        case 'CookieParam':
+          return this.getCookieParameter(this.parameter)
+        case 'FormParam':
+          return this.getFormParameter(this.parameter)
+        case 'HeaderParam':
+          return this.getHeaderParameter(this.parameter)
+        case 'QueryParam':
+          return this.getQueryParameter(this.parameter)
+        case 'PathParam':
+          return this.getPathParameter(this.parameter)
+        case 'FileParam':
+          return this.getFileParameter(this.parameter)
+        case 'FilesParam':
+          return this.getFilesParameter(this.parameter)
+        case 'Context':
+        case 'ContextRequest':
+        case 'ContextResponse':
+        case 'ContextNext':
+        case 'ContextLanguage':
+        case 'ContextAccept':
+          return this.getContextParameter(this.parameter)
+        default:
+          return this.getBodyParameter(this.parameter)
+      }
+    } catch (err) {
+      console.error(err)
+      throw new Error(err)
     }
   }
 
-  private getCurrentLocation () {
+  private getCurrentLocation(): string {
     const methodId = (this.parameter.parent as ts.MethodDeclaration)
       .name as ts.Identifier
     const controllerId = (
       (this.parameter.parent as ts.MethodDeclaration)
         .parent as ts.ClassDeclaration
     ).name
+    if (!controllerId) return `<unknown>.${methodId.text}`
     return `${controllerId.text}.${methodId.text}`
   }
 
-  private getRequestParameter (parameter: ts.ParameterDeclaration): Parameter {
+  private getRequestParameter(parameter: ts.ParameterDeclaration): Parameter {
     const parameterName = (parameter.name as ts.Identifier).text
     const type = this.getValidatedType(parameter)
 
@@ -86,7 +98,7 @@ export class ParameterGenerator {
     }
   }
 
-  private getContextParameter (parameter: ts.ParameterDeclaration): Parameter {
+  private getContextParameter(parameter: ts.ParameterDeclaration): Parameter {
     const parameterName = (parameter.name as ts.Identifier).text
 
     return {
@@ -99,7 +111,7 @@ export class ParameterGenerator {
     }
   }
 
-  private getFileParameter (parameter: ts.ParameterDeclaration): Parameter {
+  private getFileParameter(parameter: ts.ParameterDeclaration): Parameter {
     const parameterName = (parameter.name as ts.Identifier).text
 
     if (!this.supportsBodyParameters(this.method)) {
@@ -122,7 +134,7 @@ export class ParameterGenerator {
     }
   }
 
-  private getFilesParameter (parameter: ts.ParameterDeclaration): Parameter {
+  private getFilesParameter(parameter: ts.ParameterDeclaration): Parameter {
     const parameterName = (parameter.name as ts.Identifier).text
 
     if (!this.supportsBodyParameters(this.method)) {
@@ -145,7 +157,7 @@ export class ParameterGenerator {
     }
   }
 
-  private getFormParameter (parameter: ts.ParameterDeclaration): Parameter {
+  private getFormParameter(parameter: ts.ParameterDeclaration): Parameter {
     const parameterName = (parameter.name as ts.Identifier).text
     const type = this.getValidatedType(parameter)
 
@@ -169,7 +181,7 @@ export class ParameterGenerator {
     }
   }
 
-  private getCookieParameter (parameter: ts.ParameterDeclaration): Parameter {
+  private getCookieParameter(parameter: ts.ParameterDeclaration): Parameter {
     const parameterName = (parameter.name as ts.Identifier).text
     //        const type = this.getValidatedType(parameter);
 
@@ -191,8 +203,15 @@ export class ParameterGenerator {
     }
   }
 
-  private getBodyParameter (parameter: ts.ParameterDeclaration): Parameter {
-    const parameterName = (parameter.name as ts.Identifier).text
+  private getBodyParameter(parameter: ts.ParameterDeclaration): Parameter {
+    let parameterName = `unknown_${Math.random()}`
+    if (parameter.name) {
+      if (ts.isIdentifier(parameter.name)) {
+        parameterName = parameter.name.text
+      } else {
+        parameterName = `${parameter.kind}`
+      }
+    }
     const type = this.getValidatedType(parameter)
 
     if (!this.supportsBodyParameters(this.method)) {
@@ -209,7 +228,7 @@ export class ParameterGenerator {
     }
   }
 
-  private getHeaderParameter (parameter: ts.ParameterDeclaration): Parameter {
+  private getHeaderParameter(parameter: ts.ParameterDeclaration): Parameter {
     const parameterName = (parameter.name as ts.Identifier).text
     const type = this.getValidatedType(parameter)
 
@@ -233,7 +252,7 @@ export class ParameterGenerator {
     }
   }
 
-  private getQueryParameter (parameter: ts.ParameterDeclaration): Parameter {
+  private getQueryParameter(parameter: ts.ParameterDeclaration): Parameter {
     const parameterName = (parameter.name as ts.Identifier).text
     const parameterOptions =
       getDecoratorOptions(
@@ -272,7 +291,7 @@ export class ParameterGenerator {
     }
   }
 
-  private getPathParameter (parameter: ts.ParameterDeclaration): Parameter {
+  private getPathParameter(parameter: ts.ParameterDeclaration): Parameter {
     const parameterName = (parameter.name as ts.Identifier).text
     const type = this.getValidatedType(parameter)
     const pathName =
@@ -283,7 +302,9 @@ export class ParameterGenerator {
 
     if (!this.supportPathDataType(type)) {
       throw new InvalidParameterException(
-        `Parameter '${parameterName}:${type}' can't be passed as a path parameter in '${this.getCurrentLocation()}'.`
+        `Parameter '${parameterName}:${
+          type.typeName
+        }' can't be passed as a path parameter in '${this.getCurrentLocation()}'.`
       )
     }
     if (
@@ -305,7 +326,7 @@ export class ParameterGenerator {
     }
   }
 
-  private getParameterDescription (node: ts.ParameterDeclaration) {
+  private getParameterDescription(node: ts.ParameterDeclaration): string {
     const symbol = MetadataGenerator.current.typeChecker.getSymbolAtLocation(
       node.name
     )
@@ -322,11 +343,11 @@ export class ParameterGenerator {
     return ''
   }
 
-  private supportsBodyParameters (method: string) {
+  private supportsBodyParameters(method: string): boolean {
     return ['delete', 'post', 'put', 'patch'].some((m) => m === method)
   }
 
-  private supportParameterDecorator (decoratorName: string) {
+  private supportParameterDecorator(decoratorName: string): boolean {
     return [
       'HeaderParam',
       'QueryParam',
@@ -345,7 +366,7 @@ export class ParameterGenerator {
     ].some((d) => d === decoratorName)
   }
 
-  private supportPathDataType (parameterType: Type) {
+  private supportPathDataType(parameterType: Type): string | undefined {
     return [
       'string',
       'integer',
@@ -360,8 +381,9 @@ export class ParameterGenerator {
     ].find((t) => t === parameterType.typeName)
   }
 
-  private supportQueryDataType (parameterType: Type) {
+  private supportQueryDataType(parameterType: Type): string | undefined {
     // Copied from supportPathDataType and added 'array'. Not sure if all options apply to queries, but kept to avoid breaking change.
+    console.log('supportQueryDataType::parameterType::', parameterType.typeName)
     return [
       'string',
       'integer',
@@ -377,18 +399,18 @@ export class ParameterGenerator {
     ].find((t) => t === parameterType.typeName)
   }
 
-  private getValidatedType (parameter: ts.ParameterDeclaration) {
+  private getValidatedType(
+    parameter: ts.ParameterDeclaration
+  ): Type | ObjectType | ArrayType {
     if (!parameter.type) {
       throw new Error(
-        `Parameter ${
-          parameter.name
-        } doesn't have a valid type assigned in '${this.getCurrentLocation()}'.`
+        `Parameter ${parameter.name.getText()} doesn't have a valid type assigned in '${this.getCurrentLocation()}'.`
       )
     }
     return resolveType(parameter.type, this.genericTypeMap)
   }
 
-  private getDefaultValue (initializer?: ts.Expression) {
+  private getDefaultValue(initializer?: ts.Expression): any {
     if (!initializer) {
       return
     }

@@ -11,7 +11,7 @@ import {
   PUT,
   QueryParam,
   Return,
-  Security,
+  Security
 } from 'typescript-rest'
 
 import * as swagger from '../../src/decorators'
@@ -21,10 +21,28 @@ export interface MytypeWithUnion {
   property: 'value1' | 'value2'
 }
 
+export type MytypeWithUnion2 = Union1Type | Union2Type
+
+export interface Union1Type {
+  a: never
+  b: number
+}
+
+export interface Union2Type {
+  a: number
+  b: never
+}
+
 @Path('unionTypes')
 export class TestUnionType {
   @POST
   public post(body: MytypeWithUnion): string {
+    return '42'
+  }
+
+  @POST
+  @Path('secondpath')
+  public post2(body: MytypeWithUnion2): string {
     return '42'
   }
 }
@@ -40,17 +58,17 @@ interface Person {
 
 enum TestEnum {
   Option1 = 'option1',
-  Option2 = 'option2',
+  Option2 = 'option2'
 }
 
 enum TestNumericEnum {
   Option1,
-  Option2,
+  Option2
 }
 
 enum TestMixedEnum {
   Option1,
-  Option2 = 'String param',
+  Option2 = 'String param'
 }
 
 @Accept('text/plain')
@@ -73,7 +91,7 @@ export class MyService {
   @GET
   @Path('secondpath')
   @swagger.Example<Person>({
-    name: 'Joe',
+    name: 'Joe'
   })
   @swagger.Response<Person>(200, 'The success test.')
   public test2(
@@ -90,8 +108,8 @@ export class MyService {
   @POST
   @swagger.Example<Array<Person>>([
     {
-      name: 'Joe',
-    },
+      name: 'Joe'
+    }
   ])
   public testPostString(body: string): Array<Person> {
     return []
@@ -103,14 +121,26 @@ export class MyService {
     return data
   }
 
+  @Path('obj2')
+  @POST
+  public testPostObject2(data2: {}) {
+    return data2
+  }
+
+  @Path('obj3')
+  @POST
+  public testPostObject3(data3: Object) {
+    return data3
+  }
+
   @GET
   @Path('multi-query')
   public testMultiQuery(
-    @QueryParam('id') ids: Array<string>,
+    @QueryParam('id') ids: string[],
     @QueryParam(
       'name' /*, { collectionFormat: 'multi', allowEmptyValue: true }*/
     )
-    names?: string | Array<string>
+    names?: string | string[]
   ) {
     return { ids: ids, names: names }
   }
@@ -122,7 +152,7 @@ export class MyService {
     @QueryParam('str') str: string = 'default value',
     @QueryParam('bool1') bool1: boolean = true,
     @QueryParam('bool2') bool2: boolean = false,
-    @QueryParam('arr') arr: Array<string> = ['a', 'b', 'c']
+    @QueryParam('arr') arr: string[] = ['a', 'b', 'c']
   ) {
     return
   }
@@ -270,6 +300,17 @@ export class DerivedEndpoint2 {
   @GET
   @Path(':param')
   protected test(@PathParam('param') param: string): Promise<MyDatatype2> {
+    return new Promise<MyDatatype2>((resolve, reject) => {
+      // content
+    })
+  }
+
+  @POST
+  @Path(':param')
+  protected test2(
+    @PathParam('param') param: string,
+    basicModel: BasicModel2<SimpleHelloType>
+  ): Promise<MyDatatype2> {
     return new Promise<MyDatatype2>((resolve, reject) => {
       // content
     })

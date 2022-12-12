@@ -3,7 +3,7 @@ import * as ts from 'typescript'
 import { getDecoratorTextValue, isDecorator } from '../utils/decoratorUtils'
 import { normalizePath } from '../utils/pathUtils'
 import { EndpointGenerator } from './endpointGenerator'
-import { Controller } from './metadataGenerator'
+import { Controller, Method } from './metadataGenerator'
 import { MethodGenerator } from './methodGenerator'
 import { getSuperClass } from './resolveType'
 
@@ -11,18 +11,18 @@ export class ControllerGenerator extends EndpointGenerator<ts.ClassDeclaration> 
   private readonly pathValue: string | undefined
   private readonly genMethods: Set<string> = new Set<string>()
 
-  constructor (node: ts.ClassDeclaration) {
+  constructor(node: ts.ClassDeclaration) {
     super(node, 'controllers')
     this.pathValue = normalizePath(
       getDecoratorTextValue(node, (decorator) => decorator.text === 'Path')
     )
   }
 
-  public isValid () {
+  public isValid(): boolean {
     return !!this.pathValue || this.pathValue === ''
   }
 
-  public generate (): Controller {
+  public generate(): Controller {
     if (!this.node.parent) {
       throw new Error(
         "Controller node doesn't have a valid parent source file."
@@ -60,11 +60,11 @@ export class ControllerGenerator extends EndpointGenerator<ts.ClassDeclaration> 
     return controllerMetadata
   }
 
-  protected getCurrentLocation (): string {
-    return (this.node).name.text
+  protected getCurrentLocation(): string {
+    return this.node?.name?.text ?? ''
   }
 
-  private buildMethods () {
+  private buildMethods(): any[] {
     let result: any[] = []
     let targetClass: any = {
       type: this.node,
@@ -81,10 +81,10 @@ export class ControllerGenerator extends EndpointGenerator<ts.ClassDeclaration> 
     return result
   }
 
-  private buildMethodsForClass (
+  private buildMethodsForClass(
     node: ts.ClassDeclaration,
     genericTypeMap?: Map<String, ts.TypeNode>
-  ) {
+  ): Method[] {
     return node.members
       .filter((m) => m.kind === ts.SyntaxKind.MethodDeclaration)
       .filter(

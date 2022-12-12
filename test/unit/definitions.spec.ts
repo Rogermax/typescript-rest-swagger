@@ -9,14 +9,15 @@ describe('Definition generation', () => {
   const compilerOptions = {
     baseUrl: '.',
     paths: {
-      '@/*': ['test/data/*']
-    }
+      '@/*': ['test/data/*'],
+    },
   }
   const metadata = new MetadataGenerator(
     ['./test/data/ap*.ts'],
     compilerOptions
   ).generate()
   const spec = new SpecGenerator(metadata, getDefaultOptions()).getSwaggerSpec()
+  console.log(JSON.stringify(spec))
 
   describe('MyService', () => {
     it('should generate paths for decorated services', () => {
@@ -268,7 +269,7 @@ describe('Definition generation', () => {
       expect(expression.evaluate(spec)).toEqual({
         description: '',
         properties: {},
-        type: 'object'
+        type: 'object',
       })
     })
 
@@ -304,23 +305,23 @@ describe('Definition generation', () => {
         description: '',
         properties: {
           a: { type: 'string', description: '' },
-          b: { type: 'number', format: 'double', description: '' }
+          b: { type: 'number', format: 'double', description: '' },
         },
         required: ['a', 'b'],
-        type: 'object'
+        type: 'object',
       })
       expect(spec.paths).toHaveProperty('/mypath/test-compiler-options')
       expression = jsonata(
         'paths."/mypath/test-compiler-options".post.responses."200".schema'
       )
       expect(expression.evaluate(spec)).toEqual({
-        $ref: '#/definitions/TestInterface'
+        $ref: '#/definitions/TestInterface',
       })
       expression = jsonata(
         'paths."/mypath/test-compiler-options".post.parameters[0].schema'
       )
       expect(expression.evaluate(spec)).toEqual({
-        $ref: '#/definitions/TestInterface'
+        $ref: '#/definitions/TestInterface',
       })
     })
     it('should support formparam', () => {
@@ -335,7 +336,7 @@ describe('Definition generation', () => {
         in: 'formData',
         name: 'id',
         required: true,
-        type: 'string'
+        type: 'string',
       })
     })
   })
@@ -515,7 +516,7 @@ describe('Definition generation', () => {
     it('should apply controller security to request', () => {
       const expression = jsonata('paths."/secure".get.security')
       expect(expression.evaluate(spec)).toStrictEqual([
-        { access_token: ['ROLE_1', 'ROLE_2'] }
+        { access_token: ['ROLE_1', 'ROLE_2'] },
       ])
     })
 
@@ -531,7 +532,7 @@ describe('Definition generation', () => {
       expect(expression.evaluate(spec)).toStrictEqual([
         { default: ['access_token'] },
         { default: ['user_email'] },
-        { default: [] }
+        { default: [] },
       ])
     })
   })
@@ -584,7 +585,7 @@ describe('Definition generation', () => {
       expect(expression.evaluate(openapi)).toStrictEqual([
         { default: ['access_token'] },
         { default: ['user_email'] },
-        { default: [] }
+        { default: [] },
       ])
       expect(openapi.openapi).toEqual('3.0.0')
     })
@@ -601,6 +602,23 @@ describe('Definition generation', () => {
       expect(paramSpec.schema.$ref).toEqual('#/definitions/MytypeWithUnion')
       expect(myTypeDefinition.type).toEqual('string')
       expect(myTypeDefinition.enum).toEqual(['value1', 'value2'])
+    })
+  })
+
+  describe('TestGenerics2', () => {
+    it.only('should support generic types', () => {
+      const expression = jsonata(
+        'paths."/generics2/{param}".post.parameters[1]'
+      )
+      const paramSpec = expression.evaluate(spec)
+      const definitionExpression = jsonata(
+        'definitions.BasicModel2SimpleHelloType.properties.prop'
+      )
+      const myTypeDefinition = definitionExpression.evaluate(spec)
+      expect(paramSpec.schema.$ref).toEqual(
+        '#/definitions/BasicModel2SimpleHelloType'
+      )
+      expect(myTypeDefinition.$ref).toEqual('#/definitions/SimpleHelloType')
     })
   })
 })

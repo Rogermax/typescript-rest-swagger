@@ -8,7 +8,13 @@ import {
 } from '../utils/jsDocUtils'
 import { normalizePath } from '../utils/pathUtils'
 import { EndpointGenerator } from './endpointGenerator'
-import { Method, ResponseData, ResponseType, Type } from './metadataGenerator'
+import {
+  Method,
+  Parameter,
+  ResponseData,
+  ResponseType,
+  Type
+} from './metadataGenerator'
 import { ParameterGenerator } from './parameterGenerator'
 import { resolveType } from './resolveType'
 
@@ -16,7 +22,7 @@ export class MethodGenerator extends EndpointGenerator<ts.MethodDeclaration> {
   private method: string
   private path: string
 
-  constructor (
+  constructor(
     node: ts.MethodDeclaration,
     private readonly controllerPath: string,
     private readonly genericTypeMap?: Map<String, ts.TypeNode>
@@ -25,16 +31,16 @@ export class MethodGenerator extends EndpointGenerator<ts.MethodDeclaration> {
     this.processMethodDecorators()
   }
 
-  public isValid () {
+  public isValid(): boolean {
     return !!this.method
   }
 
-  public getMethodName () {
+  public getMethodName(): string {
     const identifier = this.node.name as ts.Identifier
     return identifier.text
   }
 
-  public generate (): Method {
+  public generate(): Method {
     if (!this.isValid()) {
       throw new Error("This isn't a valid controller method.")
     }
@@ -75,14 +81,14 @@ export class MethodGenerator extends EndpointGenerator<ts.MethodDeclaration> {
     return methodMetadata
   }
 
-  protected getCurrentLocation () {
+  protected getCurrentLocation(): string {
     const methodId = this.node.name as ts.Identifier
-    const controllerId = (this.node.parent as ts.ClassDeclaration)
-      .name
+    const controllerId = (this.node.parent as ts.ClassDeclaration).name
+    if (!controllerId) return `<unknown>.${methodId.text}`
     return `${controllerId.text}.${methodId.text}`
   }
 
-  private buildParameters () {
+  private buildParameters(): Parameter[] {
     this.debugger('Processing method %s parameters.', this.getCurrentLocation())
     const parameters = this.node.parameters
       .map((p) => {
@@ -100,16 +106,24 @@ export class MethodGenerator extends EndpointGenerator<ts.MethodDeclaration> {
             this.genericTypeMap
           ).generate()
         } catch (e) {
+          console.log('paramenter.name', p.name)
           const methodId = this.node.name as ts.Identifier
-          const controllerId = (this.node.parent as ts.ClassDeclaration)
-            .name
+          const controllerId = (this.node.parent as ts.ClassDeclaration).name
           const parameterId = p.name as ts.Identifier
-          throw new Error(
-            `Error generate parameter method: '${controllerId.text}.${methodId.text}' argument: ${parameterId.text} ${e}`
-          )
+          if (!controllerId)
+            return `Error generate parameter method: '<unknown>.${
+              methodId.text
+            }' argument: ${parameterId.text} ${JSON.stringify(e)}`
+          const err = `Error generate parameter method: '${controllerId.text}.${
+            methodId.text
+          }' argument: ${parameterId.text} ${JSON.stringify(e)}`
+          console.error(err)
+          throw new Error(err)
         }
       })
-      .filter((p) => p.in !== 'context' && p.in !== 'cookie')
+      .filter(
+        (p: Parameter) => p.in !== 'context' && p.in !== 'cookie'
+      ) as Parameter[]
 
     const bodyParameters = parameters.filter((p) => p.in === 'body')
     const formParameters = parameters.filter((p) => p.in === 'formData')
@@ -132,19 +146,17 @@ export class MethodGenerator extends EndpointGenerator<ts.MethodDeclaration> {
     return parameters
   }
 
-  private processMethodDecorators () {
+  private processMethodDecorators(): void {
     const httpMethodDecorators = getDecorators(this.node, (decorator) =>
       this.supportsPathMethod(decorator.text)
     )
 
-    if (!httpMethodDecorators || (httpMethodDecorators.length === 0)) {
+    if (!httpMethodDecorators || httpMethodDecorators.length === 0) {
       return
     }
     if (httpMethodDecorators.length > 1) {
       throw new Error(
-        `Only one HTTP Method decorator in '${
-          this.getCurrentLocation
-        }' method is acceptable, Found: ${httpMethodDecorators
+        `Only one HTTP Method decorator in '${this.getCurrentLocation()}' method is acceptable, Found: ${httpMethodDecorators
           .map((d) => d.text)
           .join(', ')}`
       )
@@ -161,9 +173,7 @@ export class MethodGenerator extends EndpointGenerator<ts.MethodDeclaration> {
 
     if (pathDecorators && pathDecorators.length > 1) {
       throw new Error(
-        `Only one Path decorator in '${
-          this.getCurrentLocation
-        }' method is acceptable, Found: ${httpMethodDecorators
+        `Only one Path decorator in '${this.getCurrentLocation()}' method is acceptable, Found: ${httpMethodDecorators
           .map((d) => d.text)
           .join(', ')}`
       )
@@ -179,7 +189,7 @@ export class MethodGenerator extends EndpointGenerator<ts.MethodDeclaration> {
     this.debugger('Mapping endpoint %s %s', this.method, this.path)
   }
 
-  private getMethodSuccessResponse (type: Type): ResponseType {
+  private getMethodSuccessResponse(type: Type): ResponseType {
     const responseData = this.getMethodSuccessResponseData(type)
     return {
       description: type.typeName === 'void' ? 'No content' : 'Ok',
@@ -189,7 +199,7 @@ export class MethodGenerator extends EndpointGenerator<ts.MethodDeclaration> {
     }
   }
 
-  private getMethodSuccessResponseData (type: Type): ResponseData {
+  private getMethodSuccessResponseData(type: Type): ResponseData {
     switch (type.typeName) {
       case 'void':
         return { status: '204', type }
@@ -209,17 +219,17 @@ export class MethodGenerator extends EndpointGenerator<ts.MethodDeclaration> {
     }
   }
 
-  private getMethodSuccessExamples () {
+  private getMethodSuccessExamples(): any {
     const exampleDecorators = getDecorators(
       this.node,
       (decorator) => decorator.text === 'Example'
     )
-    if (!exampleDecorators || (exampleDecorators.length === 0)) {
+    if (!exampleDecorators || exampleDecorators.length === 0) {
       return undefined
     }
     if (exampleDecorators.length > 1) {
       throw new Error(
-        `Only one Example decorator allowed in '${this.getCurrentLocation}' method.`
+        `Only one Example decorator allowed in '${this.getCurrentLocation()}' method.`
       )
     }
 
@@ -229,11 +239,11 @@ export class MethodGenerator extends EndpointGenerator<ts.MethodDeclaration> {
     return this.getExamplesValue(argument)
   }
 
-  private mergeResponses (
+  private mergeResponses(
     responses: ResponseType[],
     defaultResponse: ResponseType
-  ) {
-    if (!responses || (responses.length === 0)) {
+  ): ResponseType[] {
+    if (!responses || responses.length === 0) {
       return [defaultResponse]
     }
 
@@ -251,7 +261,7 @@ export class MethodGenerator extends EndpointGenerator<ts.MethodDeclaration> {
     return responses
   }
 
-  private supportsPathMethod (method: string) {
+  private supportsPathMethod(method: string): boolean {
     return ['GET', 'POST', 'PATCH', 'DELETE', 'PUT', 'OPTIONS', 'HEAD'].some(
       (m) => m === method
     )
